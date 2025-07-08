@@ -2,7 +2,7 @@ output "vm_external_ip" {
   value = google_compute_instance.vm.network_interface[0].access_config[0].nat_ip
 }
 
-output "state_bucket" {
+output "state_bucket_name" {
   value = google_storage_bucket.tf_state.name
 }
 

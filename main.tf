@@ -1,8 +1,8 @@
 terraform {
   required_version = ">= 1.0.0"
-  
+
   backend "gcs" {
-    bucket = "tf-state-bucket-${var.project_id}" # Will be created below
+    bucket = "kcuf"
     prefix = "terraform/state"
   }
 
@@ -10,6 +10,10 @@ terraform {
     google = {
       source  = "hashicorp/google"
       version = "~> 4.0"
+    }
+    random = {
+      source  = "hashicorp/random"
+      version = "~> 3.0"
     }
   }
 }
@@ -19,34 +23,36 @@ provider "google" {
   region  = var.region
 }
 
-# Create GCS bucket for Terraform state
-resource "google_storage_bucket" "tf_state" {
-  name          = "tf-state-bucket-${var.project_id}"
-  location      = var.region
-  force_destroy = true # Allows bucket to be deleted even if not empty
+provider "random" {}
 
+resource "random_id" "bucket_suffix" {
+  byte_length = 4
+}
+
+resource "google_storage_bucket" "tf_state" {
+  name          = "tf-state-${var.project_id}-${random_id.bucket_suffix.hex}"
+  location      = var.region
+  force_destroy = true
+  
   versioning {
-    enabled = true 
+    enabled = true
   }
 }
 
-# Create VPC
 resource "google_compute_network" "vpc" {
-  name                    = "${var.project_id}-vpc"
+  name                    = "nice-vpc"
   auto_create_subnetworks = false
 }
 
-# Create a subnet
 resource "google_compute_subnetwork" "subnet" {
-  name          = "${var.project_id}-subnet"
+  name          = "nice-subnet"
   ip_cidr_range = "10.0.1.0/24"
   region        = var.region
   network       = google_compute_network.vpc.id
 }
 
-# Create a firewall rule to allow SSH
 resource "google_compute_firewall" "ssh" {
-  name    = "${var.project_id}-allow-ssh"
+  name    = "nice-allow-ssh"
   network = google_compute_network.vpc.name
 
   allow {
@@ -54,12 +60,11 @@ resource "google_compute_firewall" "ssh" {
     ports    = ["22"]
   }
 
-  source_ranges = ["0.0.0.0/0"] # Warning: In production, restrict this to your IP
+  source_ranges = ["0.0.0.0/0"]
 }
 
-# Create a GCP instance
 resource "google_compute_instance" "vm" {
-  name         = "terraform-test"
+  name         = "nice-vm"
   machine_type = "e2-micro"
   zone         = "${var.region}-a"
 
@@ -71,14 +76,10 @@ resource "google_compute_instance" "vm" {
 
   network_interface {
     subnetwork = google_compute_subnetwork.subnet.self_link
-
-    access_config {
-    }
+    access_config {}  # Assigns external IP
   }
 
   metadata = {
     ssh-keys = "${var.ssh_user}:${file(var.ssh_pub_key_file)}"
   }
-
-  tags = ["ssh"]
 }

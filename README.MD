@@ -15,3 +15,8 @@ This project provisions:
 2. `terraform plan -var="project_id=your-project-id"`
 3. `terraform apply -var="project_id=your-project-id"`
 4. `terraform destroy -var="project_id=your-project-id"` when done
+
+## Reconfigure
+1. terraform init -reconfigure \
+  -backend-config="bucket=$BUCKET_NAME" \
+  -backend-config="prefix=terraform/state"

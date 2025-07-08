@@ -1,0 +1,15 @@
+# Set your variables
+PROJECT_ID="timer-463317"  # Your project ID
+BUCKET_NAME="kcuf"
+REGION="us-central1"
+
+# Create the bucket
+gcloud storage buckets create gs://${BUCKET_NAME} \
+  --project=${PROJECT_ID} \
+  --location=${REGION}
+
+# Enable versioning
+gcloud storage buckets update gs://${BUCKET_NAME} --versioning
+
+# Verify the bucket exists
+gcloud storage ls gs://${BUCKET_NAME}
